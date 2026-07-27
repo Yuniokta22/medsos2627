@@ -27,3 +27,35 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const medsosCollection = collection(db, "medsos")
+
+// 4. Fungsi untuk menambahkan status ke Firestore
+// (digunakan di halaman admin.html)
+async function postingStatus() {
+    // buat variabel untuk mengambil isi status
+    let teks = document.getElementById("isiStatus").value.trim()
+
+    // abaikan jika teks kosong
+    // langsung keluar dari fungsi ini
+    if (teks === "") return
+
+    try {
+        // buat dokumen baru di Firestore
+        await addDoc(medsosCollection, {
+            konten: teks,
+            likes: 0,
+            waktu: serverTimestamp()
+        })
+
+        // kosongkan input teks setelah berhasil menambahkan status
+        document.getElementById("isiStatus").value = ""
+
+        // tampilkan pesan sukses
+        alert("Status berhasil ditambahkan!")
+    } catch (error) {
+        // tampilkan pesan error jika gagal menambahkan status
+        alert("Gagal menambahkan status. Silakan coba lagi.")
+    }
+}
+
+// Daftarkan fungsi ke window scope agar bisa diakses dari HTML
+window.postingStatus = postingStatus
