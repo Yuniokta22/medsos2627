@@ -64,55 +64,84 @@ async function postingStatus() {
     
   }
 }
-// 4.
 async function muatTimeline() {
-  // periksa apakah elemen timeline ada di halaman 
-  // agar tidak terjadi error jika fungsi ini di halaman admin.html
-  // jadi elemen timen timeline tidakada, keluar dari fungsi (returan)
-  if (!document.getElementById("timeline")) return
-  
-  // buat query untuk memanggil dokumen dari koleksi medsos
-  // urutan berdasarkan waktu secara menurun (setatus terbaru di atas)
-  const q = query(medsosCollection, orderBy("waktu", "desc"))
-  
-  // buat variabel untuk menampung id status yang sudah disukai
-  // mengunakan lokalStorage agar data tetap ada meskipun halaman direfresh
-  const daftarLike = JSON.parse(localStorage.getItem("SUDAH_LIKE")) || []
-  
-  // menggunakan onSnapshot untuk "mendengarkan"
-  // perubahan data secara real-time dari firestore
-  onSnapshot(q, (snapshot) => {
-    // buat variabel untuk menampung HTML timeline
-    let output = ""
-    
-    // loop setiap dokumen di snapshot
-    snapshot.forEach((doc) => {
-      // ambil data dari dokumen
-      const data = doc.data()
-      
-      // ambil id dokumen
-      const id = doc.id
-      
-      // ambil id status yang sudah disukai dari lokalStorage
-      // menggunakan fungsi includes untuk memeriksa apakah id status ada di daftarLike
-      let sudahLike = daftarLike.includes(id) ? "liked" : ""
-      
-      // buat HTML untuk setiap status
-      output += `
-            <div class="post-card">
-                <div class="post-content">
-                    ${data.konten}
-                </div>
-                <button id="btn-like-${id}" class="btn-like ${sudahLike} " onclick="sukaStatus('${id}')">❤️ ${data.likes} suka </button>
-            </div>
-         `
-    })
-    
-    // tampilkan HTML timeline di elemen dengan id "timeline"
-    document.getElementById("timeline").innerHTML = output
-  })
-}
+  // Periksa apakah elemen timeline ada di halaman
+  if (!document.getElementById("timeline")) return;
 
+  // Query data medsos, urutkan berdasarkan waktu terbaru
+  const q = query(medsosCollection, orderBy("waktu", "desc"));
+
+  // Ambil daftar status yang sudah disukai
+  const daftarLike = JSON.parse(localStorage.getItem("SUDAH_LIKE")) || [];
+
+  // Menyimpan ID postingan yang sudah diketahui
+  let postinganSebelumnya = JSON.parse(
+    localStorage.getItem("POSTINGAN_SEBELUMNYA")
+  ) || [];
+
+  // Mendengarkan perubahan Firestore secara real-time
+  onSnapshot(q, (snapshot) => {
+    let output = "";
+    let postinganSekarang = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const id = doc.id;
+
+      // Simpan ID postingan saat ini
+      postinganSekarang.push(id);
+
+      // Cek apakah postingan sudah disukai
+      let sudahLike = daftarLike.includes(id) ? "liked" : "";
+
+      // Buat HTML postingan
+      output += `
+        <div class="post-card">
+          <div class="post-content">
+            ${data.konten}
+          </div>
+
+          <button 
+            id="btn-like-${id}" 
+            class="btn-like ${sudahLike}"
+            onclick="sukaStatus('${id}')"
+          >
+            ❤️ ${data.likes} suka
+          </button>
+        </div>
+      `;
+    });
+
+    // Cek apakah ada postingan baru
+    const adaPostinganBaru = postinganSekarang.some(
+      id => !postinganSebelumnya.includes(id)
+    );
+
+    // Putar suara jika ada postingan baru
+    if (adaPostinganBaru && postinganSebelumnya.length > 0) {
+      const suara = document.getElementById("suaraPostinganBaru");
+
+      if (suara) {
+        suara.currentTime = 0;
+        suara.play().catch(error => {
+          console.log("Suara belum diizinkan browser:", error);
+        });
+      }
+    }
+
+    // Simpan daftar postingan terbaru
+    localStorage.setItem(
+      "POSTINGAN_SEBELUMNYA",
+      JSON.stringify(postinganSekarang)
+    );
+
+    // Tampilkan timeline
+    document.getElementById("timeline").innerHTML = output;
+
+    // Update data sebelumnya
+    postinganSebelumnya = postinganSekarang;
+  });
+}
 // 6. fungsi suka status 
 async function sukaStatus(idDokumen) {
   // mengambil daftar status yang sudah disukai dari lokalStorage
