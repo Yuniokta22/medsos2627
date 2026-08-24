@@ -151,9 +151,54 @@ async function sukaStatus(idDokumen) {
   }
 }
 
-// Daftar fungsi ke window scope agar bisa di akses ke HTML
-window.postingStatus = postingStatus
-window.sukaStatus = sukaStatus
+// 7. Fungsi untuk memuat daftar postingan di admin.html beserta tombol Hapus
+function muatDaftarAdmin() {
+    if (!document.getElementById("daftarAdmin")) return
 
-// panggil fungsi muatTimeLine untuk  memuat timeline saat halaman dimuat
-muatTimeline()
+    const q = query(medsosCollection, orderBy("waktu", "desc"))
+
+    onSnapshot(q, (snapshot) => {
+        let output = ""
+        if (snapshot.empty) {
+            output = "<p style='color: #8e8e8e; font-size: 14px;'>Belum ada postingan.</p>"
+        } else {
+            snapshot.forEach((doc) => {
+                let data = doc.data()
+                let id = doc.id
+
+                output += `
+                    <div class="post-card">
+                        <div class="post-content">${data.konten}</div>
+                        <button class="btn-delete" onclick="hapusStatus('${id}')">
+                            🗑️ Hapus Post
+                        </button>
+                    </div>
+                `
+            })
+        }
+        document.getElementById("daftarAdmin").innerHTML = output
+    })
+}
+
+// 8. Fungsi untuk menghapus status dari Firestore
+async function hapusStatus(idDokumen) {
+    // Konfirmasi sebelum menghapus
+    if (!confirm("Apakah Anda yakin ingin menghapus postingan ini?")) return
+
+    try {
+        await deleteDoc(doc(db, "medsos", idDokumen))
+        alert("🗑️ Postingan berhasil dihapus!")
+    } catch (error) {
+        console.error(error)
+        tampilToast("❌ Gagal menghapus postingan.")
+    }
+}
+
+        // Daftar fungsi ke window scope agar bisa di akses ke HTML
+        window.postingStatus = postingStatus
+        window.sukaStatus = sukaStatus
+        window.hapusStatus = hapusStatus
+        
+        // panggil fungsi muatTimeLine untuk  memuat timeline saat halaman dimuat
+        muatTimeline()
+        muatDaftarAdmin()
